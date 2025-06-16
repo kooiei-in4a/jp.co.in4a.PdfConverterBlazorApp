@@ -27,13 +27,14 @@
                     <EditForm Model="@formModel" OnValidSubmit="@SendToApiAsync">
                         <DataAnnotationsValidator />
 
-                        @* <!-- ファイル選択 --> *@
+                        @* *@
                         <div class="mb-3">
                             <label for="fileInput" class="form-label fw-bold">
                                 <i class="bi bi-upload"></i>
                                 PDFファイル選択 <span class="text-danger">*</span>
                             </label>
                             <InputFile id="fileInput"
+                                       @key="@inputFileKey"
                                        OnChange="@OnFileSelectedAsync"
                                        accept=".pdf"
                                        class="form-control"
@@ -43,16 +44,20 @@
                             </div>
                             @if (!string.IsNullOrEmpty(selectedFileName))
                             {
-                                <div class="mt-2">
+                                <div class="mt-2 d-flex align-items-center">
                                     <span class="badge bg-success">
                                         <i class="bi bi-check-circle"></i>
                                         選択済み: @selectedFileName
                                     </span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="ClearSelectedFile">
+                                        <i class="bi bi-x-circle"></i> クリア
+                                    </button>
                                 </div>
                             }
                         </div>
 
-                        @* <!-- ユーザーID --> *@
+                        @* --- ▼ 修正点1: 「送信ユーザーID」をコメントアウト --- *@
+                        @*
                         <div class="mb-3">
                             <label for="userId" class="form-label fw-bold">
                                 <i class="bi bi-person"></i>
@@ -65,21 +70,28 @@
                                        disabled="@isProcessing" />
                             <ValidationMessage For="@(() => formModel.UserId)" class="text-danger" />
                         </div>
+                        *@
 
-                        @* <!-- パスワード設定 --> *@
+                        @* --- ▼ 修正点2: パスワード入力欄のレイアウトを調整 --- *@
+                        <div class="mb-3">
+                            <label for="viewPassword" class="form-label fw-bold">
+                                <i class="bi bi-eye"></i>
+                                参照用パスワード <span class="text-danger">*</span>
+                            </label>
+                            <InputText id="viewPassword"
+                                       @bind-Value="formModel.ViewPassword"
+                                       type="password"
+                                       class="form-control"
+                                       placeholder="参照用パスワード"
+                                       disabled="@isProcessing" />
+                            <ValidationMessage For="@(() => formModel.ViewPassword)" class="text-danger" />
+                        </div>
+
+                        @* --- ▼ 修正点3: 「編集用パスワード」をコメントアウト --- *@
+                        @*
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="viewPassword" class="form-label fw-bold">
-                                    <i class="bi bi-eye"></i>
-                                    参照用パスワード <span class="text-danger">*</span>
-                                </label>
-                                <InputText id="viewPassword"
-                                           @bind-Value="formModel.ViewPassword"
-                                           type="password"
-                                           class="form-control"
-                                           placeholder="参照用パスワード"
-                                           disabled="@isProcessing" />
-                                <ValidationMessage For="@(() => formModel.ViewPassword)" class="text-danger" />
+                                ... (元々の参照用パスワードのコード) ...
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="editPassword" class="form-label fw-bold">
@@ -95,8 +107,9 @@
                                 <ValidationMessage For="@(() => formModel.EditPassword)" class="text-danger" />
                             </div>
                         </div>
+                        *@
 
-                        @* <!-- 送信ボタン --> *@
+                        @* *@
                         <div class="d-grid">
                             <button type="submit"
                                     class="btn btn-primary btn-lg"
@@ -115,7 +128,7 @@
                         </div>
                     </EditForm>
 
-                    @* <!-- メッセージ表示 --> *@
+                    @* *@
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="alert alert-danger mt-3" role="alert">
@@ -134,7 +147,7 @@
                 </div>
             </div>
 
-            @* <!-- API接続状態 --> *@
+            @* *@
             <div class="mt-3 text-center">
                 <small class="text-muted">
                     API接続状態:
@@ -173,23 +186,31 @@
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
     private bool? apiHealthStatus = null;
+    private object inputFileKey = new();
 
     private const int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
     public class FormModel
     {
-        [Required(ErrorMessage = "ユーザーIDを入力してください")]
+        // --- ▼ 修正点4: UserIdの必須入力をコメントアウト ---
+        //[Required(ErrorMessage = "ユーザーIDを入力してください")]
         public string UserId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "参照用パスワードを入力してください")]
         public string ViewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "編集用パスワードを入力してください")]
+        // --- ▼ 修正点5: EditPasswordの必須入力をコメントアウト ---
+        //[Required(ErrorMessage = "編集用パスワードを入力してください")]
         public string EditPassword { get; set; } = string.Empty;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        // --- ▼ 修正点6: デフォルト値を設定（任意） ---
+        // 必要に応じて、固定の値をセットできます
+        formModel.UserId = "defaultUser";
+        formModel.EditPassword = formModel.ViewPassword; // 例えば参照用パスワードと同じにするなど
+
         await CheckApiHealthAsync();
     }
 
@@ -213,22 +234,16 @@
         try
         {
             var file = e.File;
-
-            // ファイルサイズ検証
             if (file.Size > MAX_FILE_SIZE)
             {
                 errorMessage = $"ファイルサイズが制限({MAX_FILE_SIZE / (1024 * 1024)}MB)を超えています。";
                 return;
             }
-
-            // ファイル形式検証
             if (!file.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
             {
                 errorMessage = "PDFファイルを選択してください。";
                 return;
             }
-
-            // ファイル読み込み
             using var stream = file.OpenReadStream(MAX_FILE_SIZE);
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
@@ -246,6 +261,15 @@
         }
     }
 
+    private void ClearSelectedFile()
+    {
+        selectedFileName = string.Empty;
+        selectedFileData = null;
+        inputFileKey = new object();
+        ClearMessages();
+        Logger.LogInformation("ファイル選択がクリアされました。");
+    }
+
     private async Task SendToApiAsync()
     {
         if (!CanSubmit()) return;
@@ -260,7 +284,10 @@
                 UserId = formModel.UserId.Trim(),
                 FileName = selectedFileName,
                 ViewPassword = formModel.ViewPassword.Trim(),
-                EditPassword = formModel.EditPassword.Trim(),
+                // 編集用パスワードが空の場合、参照用と同じ値を設定する（例）
+                EditPassword = string.IsNullOrWhiteSpace(formModel.EditPassword)
+                                     ? formModel.ViewPassword.Trim()
+                                     : formModel.EditPassword.Trim(),
                 FileData = selectedFileData!
             };
 
@@ -273,7 +300,6 @@
             {
                 await DownloadFileAsync(response.FileName, response.FileData);
                 successMessage = $"変換完了！ファイル「{response.FileName}」をダウンロードしました。";
-
                 Logger.LogInformation("変換完了: {FileName}, 出力サイズ: {OutputSize}bytes",
                     response.FileName, response.FileData.Length);
             }
@@ -305,10 +331,11 @@
     private bool CanSubmit()
     {
         return !isProcessing
-            && selectedFileData != null
-            && !string.IsNullOrWhiteSpace(formModel.UserId)
-            && !string.IsNullOrWhiteSpace(formModel.ViewPassword)
-            && !string.IsNullOrWhiteSpace(formModel.EditPassword);
+               && selectedFileData != null
+               // --- ▼ 修正点7: 送信条件からUserIdとEditPasswordを削除 ---
+               // && !string.IsNullOrWhiteSpace(formModel.UserId)
+               && !string.IsNullOrWhiteSpace(formModel.ViewPassword);
+        // && !string.IsNullOrWhiteSpace(formModel.EditPassword);
     }
 
     private async Task DownloadFileAsync(string fileName, byte[] fileData)
