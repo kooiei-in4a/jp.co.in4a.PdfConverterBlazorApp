@@ -1,0 +1,333 @@
+﻿@page "/"
+@using PdfConverterShare.Models
+@using PdfConverterApp.Services
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime JSRuntime
+@inject IPdfConverterService ConverterService
+@inject ILogger<Home> Logger
+
+<PageTitle>PDF変換アプリ</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-4">
+                <i class="bi bi-file-earmark-pdf"></i>
+                PDF変換アプリ
+            </h1>
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        PDFファイル変換
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@formModel" OnValidSubmit="@SendToApiAsync">
+                        <DataAnnotationsValidator />
+
+                        <!-- ファイル選択 -->
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label fw-bold">
+                                <i class="bi bi-upload"></i>
+                                PDFファイル選択 <span class="text-danger">*</span>
+                            </label>
+                            <InputFile id="fileInput"
+                                       OnChange="@OnFileSelectedAsync"
+                                       accept=".pdf"
+                                       class="form-control"
+                                       disabled="@isProcessing" />
+                            <div class="form-text">
+                                PDF形式のファイルを選択してください（最大10MB）
+                            </div>
+                            @if (!string.IsNullOrEmpty(selectedFileName))
+                            {
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i>
+                                        選択済み: @selectedFileName
+                                    </span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- ユーザーID -->
+                        <div class="mb-3">
+                            <label for="userId" class="form-label fw-bold">
+                                <i class="bi bi-person"></i>
+                                送信ユーザーID <span class="text-danger">*</span>
+                            </label>
+                            <InputText id="userId"
+                                       @bind-Value="formModel.UserId"
+                                       class="form-control"
+                                       placeholder="例: user001"
+                                       disabled="@isProcessing" />
+                            <ValidationMessage For="@(() => formModel.UserId)" class="text-danger" />
+                        </div>
+
+                        <!-- パスワード設定 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="viewPassword" class="form-label fw-bold">
+                                    <i class="bi bi-eye"></i>
+                                    参照用パスワード <span class="text-danger">*</span>
+                                </label>
+                                <InputText id="viewPassword"
+                                           @bind-Value="formModel.ViewPassword"
+                                           type="password"
+                                           class="form-control"
+                                           placeholder="参照用パスワード"
+                                           disabled="@isProcessing" />
+                                <ValidationMessage For="@(() => formModel.ViewPassword)" class="text-danger" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editPassword" class="form-label fw-bold">
+                                    <i class="bi bi-pencil"></i>
+                                    編集用パスワード <span class="text-danger">*</span>
+                                </label>
+                                <InputText id="editPassword"
+                                           @bind-Value="formModel.EditPassword"
+                                           type="password"
+                                           class="form-control"
+                                           placeholder="編集用パスワード"
+                                           disabled="@isProcessing" />
+                                <ValidationMessage For="@(() => formModel.EditPassword)" class="text-danger" />
+                            </div>
+                        </div>
+
+                        <!-- 送信ボタン -->
+                        <div class="d-grid">
+                            <button type="submit"
+                                    class="btn btn-primary btn-lg"
+                                    disabled="@(!CanSubmit())">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>変換処理中...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-play-circle"></i>
+                                    <span>変換実行</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <!-- メッセージ表示 -->
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>エラー:</strong> @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success mt-3" role="alert">
+                            <i class="bi bi-check-circle"></i>
+                            <strong>成功:</strong> @successMessage
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- API接続状態 -->
+            <div class="mt-3 text-center">
+                <small class="text-muted">
+                    API接続状態:
+                    @if (apiHealthStatus.HasValue)
+                    {
+                        @if (apiHealthStatus.Value)
+                        {
+                            <span class="text-success">
+                                <i class="bi bi-circle-fill"></i> 正常
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">
+                                <i class="bi bi-circle-fill"></i> 接続エラー
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-warning">
+                            <i class="bi bi-circle-fill"></i> 確認中...
+                        </span>
+                    }
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private FormModel formModel = new();
+    private string selectedFileName = string.Empty;
+    private byte[]? selectedFileData = null;
+    private bool isProcessing = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool? apiHealthStatus = null;
+
+    private const int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    public class FormModel
+    {
+        [Required(ErrorMessage = "ユーザーIDを入力してください")]
+        public string UserId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "参照用パスワードを入力してください")]
+        public string ViewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "編集用パスワードを入力してください")]
+        public string EditPassword { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckApiHealthAsync();
+    }
+
+    private async Task CheckApiHealthAsync()
+    {
+        try
+        {
+            apiHealthStatus = await ConverterService.CheckApiHealthAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "API接続確認エラー");
+            apiHealthStatus = false;
+        }
+    }
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        ClearMessages();
+
+        try
+        {
+            var file = e.File;
+
+            // ファイルサイズ検証
+            if (file.Size > MAX_FILE_SIZE)
+            {
+                errorMessage = $"ファイルサイズが制限({MAX_FILE_SIZE / (1024 * 1024)}MB)を超えています。";
+                return;
+            }
+
+            // ファイル形式検証
+            if (!file.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = "PDFファイルを選択してください。";
+                return;
+            }
+
+            // ファイル読み込み
+            using var stream = file.OpenReadStream(MAX_FILE_SIZE);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+
+            selectedFileName = file.Name;
+            selectedFileData = memoryStream.ToArray();
+
+            Logger.LogInformation("ファイル選択完了: {FileName}, サイズ: {FileSize}bytes",
+                selectedFileName, selectedFileData.Length);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ファイル選択エラー");
+            errorMessage = $"ファイル読み込みエラー: {ex.Message}";
+        }
+    }
+
+    private async Task SendToApiAsync()
+    {
+        if (!CanSubmit()) return;
+
+        isProcessing = true;
+        ClearMessages();
+
+        try
+        {
+            var request = new ConvertRequest
+            {
+                UserId = formModel.UserId.Trim(),
+                FileName = selectedFileName,
+                ViewPassword = formModel.ViewPassword.Trim(),
+                EditPassword = formModel.EditPassword.Trim(),
+                FileData = selectedFileData!
+            };
+
+            Logger.LogInformation("API送信開始: ユーザー={UserId}, ファイル={FileName}",
+                request.UserId, request.FileName);
+
+            var response = await ConverterService.ConvertPdfAsync(request);
+
+            if (response?.FileData != null && response.FileData.Length > 0)
+            {
+                await DownloadFileAsync(response.FileName, response.FileData);
+                successMessage = $"変換完了！ファイル「{response.FileName}」をダウンロードしました。";
+
+                Logger.LogInformation("変換完了: {FileName}, 出力サイズ: {OutputSize}bytes",
+                    response.FileName, response.FileData.Length);
+            }
+            else
+            {
+                errorMessage = "APIからの応答データが無効です。";
+            }
+        }
+        catch (TimeoutException)
+        {
+            errorMessage = "処理がタイムアウトしました。ファイルサイズを確認して再試行してください。";
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"API通信エラー: {ex.Message}";
+            Logger.LogError(ex, "API通信エラー");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"予期しないエラーが発生しました: {ex.Message}";
+            Logger.LogError(ex, "予期しないエラー");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private bool CanSubmit()
+    {
+        return !isProcessing
+            && selectedFileData != null
+            && !string.IsNullOrWhiteSpace(formModel.UserId)
+            && !string.IsNullOrWhiteSpace(formModel.ViewPassword)
+            && !string.IsNullOrWhiteSpace(formModel.EditPassword);
+    }
+
+    private async Task DownloadFileAsync(string fileName, byte[] fileData)
+    {
+        try
+        {
+            var base64Data = Convert.ToBase64String(fileData);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", base64Data, fileName, "application/pdf");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ファイルダウンロードエラー");
+            errorMessage = $"ファイルダウンロードエラー: {ex.Message}";
+        }
+    }
+
+    private void ClearMessages()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+}
