@@ -1,5 +1,6 @@
 ﻿# PDF変換Webアプリケーション
 
+Blazor WebAssemblyからASP.NET Core APIに通信するミニマムサンプルプロジェクトです。
 PDFファイルのアップロード、変換処理、ダウンロードを行うWebアプリケーションです。Blazor WebAssemblyとASP.NET Core APIで構築されています。
 
 ## 機能
@@ -39,8 +40,8 @@ PDFファイルのアップロード、変換処理、ダウンロードを行�
 ### 1. リポジトリのクローン
 
 ```bash
-git clone https://github.com/yourusername/pdf-converter-app.git
-cd pdf-converter-app
+git clone https://github.com/kooiei-in4a/jp.co.in4a.PdfConverterBlazorApp
+cd jp.co.in4a.PdfConverterBlazorApp
 ```
 
 ### 2. APIサーバーの起動
@@ -49,7 +50,7 @@ cd pdf-converter-app
 cd PdfConverterApi
 dotnet restore
 dotnet run
-# → https://localhost:7005 で起動
+# → http://localhost:5003/api/DataConvert で起動
 ```
 
 ### 3. Blazorアプリの起動 (新しいターミナル)
