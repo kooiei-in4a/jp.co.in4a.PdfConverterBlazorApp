@@ -1,17 +1,8 @@
-﻿# PDF変換アプリケーション
-
-![.NET Version](https://img.shields.io/badge/.NET-9.0-purple)
-![Blazor](https://img.shields.io/badge/Blazor-WebAssembly-blue)
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-9.0-green)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+﻿# PDF変換Webアプリケーション
 
 PDFファイルのアップロード、変換処理、ダウンロードを行うWebアプリケーションです。Blazor WebAssemblyとASP.NET Core APIで構築されています。
 
-## 📸 スクリーンショット
-
-![アプリケーション画面](docs/images/app-screenshot.png)
-
-## 🌟 主な機能
+## 機能
 
 - **PDFファイルアップロード**: ドラッグ&ドロップまたはファイル選択でPDFをアップロード
 - **セキュアな変換処理**: ユーザーID、参照用・編集用パスワードを設定してPDF変換
@@ -19,95 +10,100 @@ PDFファイルのアップロード、変換処理、ダウンロードを行�
 - **リアルタイム状態表示**: API接続状態、処理進行状況を表示
 - **レスポンシブデザイン**: モバイル・デスクトップ対応
 
-## 🏗️ アーキテクチャ
+## システム構成
 
 ```
-┌─────────────────────┐    HTTPS/REST API    ┌─────────────────────┐
+┌─────────────────────┐ HTTPS/REST API ┌─────────────────────┐
 │                     │◄────────────────────►│                     │
-│  Blazor WebAssembly │                      │  ASP.NET Core API   │
-│  (フロントエンド)     │                      │  (バックエンド)       │
+│ Blazor WebAssembly  │                      │ ASP.NET Core API    │
+│ (フロントエンド)     │                      │ (バックエンド)      │
 │                     │                      │                     │
 └─────────────────────┘                      └─────────────────────┘
-         │                                              │
-         ▼                                              ▼
+            │                                           │
+            ▼                                           ▼
 ┌─────────────────────┐                      ┌─────────────────────┐
-│   ブラウザ (SPA)     │                      │   PDF処理エンジン    │
-│   ・ファイル選択      │                      │   ・入力値検証        │
-│   ・入力フォーム      │                      │   ・ファイル変換      │
-│   ・ダウンロード処理   │                      │   ・ログ出力         │
+│ ブラウザ (SPA)      │                      │ PDF処理エンジン     │
+│ ・ファイル選択      │                      │ ・入力値検証        │
+│ ・入力フォーム      │                      │ ・ファイル変換      │
+│ ・ダウンロード処理  │                      │ ・ログ出力          │
 └─────────────────────┘                      └─────────────────────┘
 ```
 
-## 🚀 クイックスタート
-
-### 前提条件
+## 必要な環境
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - HTTPS開発証明書の設定
 
-### インストール・実行手順
+## 開発環境のセットアップ
 
-1. **リポジトリのクローン**
-   ```bash
-   git clone https://github.com/yourusername/pdf-converter-app.git
-   cd pdf-converter-app
-   ```
+### 1. リポジトリのクローン
 
-2. **APIサーバーの起動**
-   ```bash
-   cd PdfConverterApi
-   dotnet restore
-   dotnet run
-   # → https://localhost:7005 で起動
-   ```
+```bash
+git clone https://github.com/yourusername/pdf-converter-app.git
+cd pdf-converter-app
+```
 
-3. **Blazorアプリの起動** (新しいターミナル)
-   ```bash
-   cd PdfConverterApp
-   dotnet restore
-   dotnet run
-   # → https://localhost:5001 で起動
-   ```
+### 2. APIサーバーの起動
 
-4. **アプリケーションにアクセス**
-   
-   ブラウザで https://localhost:5001 を開く
+```bash
+cd PdfConverterApi
+dotnet restore
+dotnet run
+# → https://localhost:7005 で起動
+```
 
-### 動作確認
+### 3. Blazorアプリの起動 (新しいターミナル)
 
-- API動作確認: `curl -X GET https://localhost:7005/api/data-convert`
+```bash
+cd PdfConverterApp
+dotnet restore
+dotnet run
+# → https://localhost:5001 で起動
+```
+
+### 4. アプリケーションにアクセス
+
+ブラウザで [https://localhost:5001](https://localhost:5001) を開く
+
+## API動作確認
+
+- API動作確認:
+  ```bash
+  curl -X GET https://localhost:7005/api/data-convert
+  ```
 - ブラウザでのアプリ動作確認
 
-## 📁 プロジェクト構造
+## プロジェクト構造
 
 ```
 pdf-converter-app/
-├── PdfConverterApi/              # ASP.NET Core API
+├── PdfConverterApi/         # ASP.NET Core API
 │   ├── Controllers/
 │   │   └── DataConvertController.cs
-│   ├── Models/
-│   │   └── ApiModels.cs
 │   ├── Program.cs
 │   └── appsettings.json
-├── PdfConverterApp/              # Blazor WebAssembly
+├── PdfConverterApp/         # Blazor WebAssembly
 │   ├── Components/
 │   │   └── Pages/
 │   │       └── Home.razor
-│   ├── Models/
-│   │   └── ApiModels.cs
 │   ├── Services/
 │   │   └── PdfConverterService.cs
 │   ├── Program.cs
 │   └── wwwroot/
 │       └── index.html
-├── docs/                        # ドキュメント
+├── PdfConverterShared/      # 共通Models
+│   └── Models/
+│       ├── ConvertRequest.cs
+│       ├── ConvertResponse.cs
+│       └── ErrorResponse.cs
+├── docs/                    # ドキュメント
 ├── README.md
 └── .gitignore
 ```
 
-## 🔧 設定・カスタマイズ
+## 設定のカスタマイズ
 
-### APIエンドポイントの変更
+### API接続先の変更
 
 `PdfConverterApp/Services/PdfConverterService.cs` の `_apiBaseUrl` を変更:
 
@@ -117,17 +113,19 @@ private readonly string _apiBaseUrl = "https://your-api-domain.com/api/data-conv
 
 ### ファイルサイズ制限の変更
 
-**API側** (`PdfConverterApi/Controllers/DataConvertController.cs`):
+API側 (`PdfConverterApi/Controllers/DataConvertController.cs`):
+
 ```csharp
 private const int MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 ```
 
-**Blazor側** (`PdfConverterApp/Components/Pages/Home.razor`):
+Blazor側 (`PdfConverterApp/Components/Pages/Home.razor`):
+
 ```csharp
 private const int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 ```
 
-### CORS設定の調整
+### CORS設定
 
 `PdfConverterApi/Program.cs` でBlazorアプリのURLを設定:
 
@@ -135,7 +133,7 @@ private const int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 policy.WithOrigins("https://localhost:5001", "http://localhost:5000")
 ```
 
-## 🛡️ セキュリティ機能
+## セキュリティ機能
 
 - **入力値検証**: クライアント・サーバー両側での検証
 - **ファイル形式チェック**: PDFヘッダーの検証
@@ -143,13 +141,14 @@ policy.WithOrigins("https://localhost:5001", "http://localhost:5000")
 - **CORS制御**: 許可されたオリジンからのみアクセス可能
 - **エラー情報制御**: 内部情報の漏洩防止
 
-## 📊 API仕様
+## API仕様
 
 ### POST /api/data-convert
 
 PDFファイルの変換処理を実行します。
 
-**リクエスト:**
+**リクエスト** (`PdfConverterShared.Models.ConvertRequest`):
+
 ```json
 {
   "userId": "user001",
@@ -160,7 +159,8 @@ PDFファイルの変換処理を実行します。
 }
 ```
 
-**レスポンス (成功時):**
+**レスポンス** (成功時、`PdfConverterShared.Models.ConvertResponse`):
+
 ```json
 {
   "fileName": "document_converted_20241216_143022.pdf",
@@ -168,7 +168,8 @@ PDFファイルの変換処理を実行します。
 }
 ```
 
-**レスポンス (エラー時):**
+**レスポンス** (エラー時、`PdfConverterShared.Models.ErrorResponse`):
+
 ```json
 {
   "message": "入力値が不正です",
@@ -181,7 +182,8 @@ PDFファイルの変換処理を実行します。
 
 API動作確認用エンドポイントです。
 
-**レスポンス:**
+**レスポンス**:
+
 ```json
 {
   "service": "PDF変換API",
@@ -191,21 +193,23 @@ API動作確認用エンドポイントです。
 }
 ```
 
-## 🧪 テスト
+## テスト
 
-### 手動テスト手順
+### 手動テスト
 
-1. **正常系テスト**
-   - 有効なPDFファイルをアップロード
-   - 全必須項目を入力して送信
-   - ダウンロードファイルの確認
+#### 正常系テスト
 
-2. **異常系テスト**
-   - PDF以外のファイルをアップロード
-   - 制限サイズ超過ファイルをアップロード
-   - 必須項目を空のまま送信
+- 有効なPDFファイルをアップロード
+- 全必須項目を入力して送信
+- ダウンロードファイルの確認
 
-### 自動テスト (将来実装予定)
+#### 異常系テスト
+
+- PDF以外のファイルをアップロード
+- 制限サイズ超過ファイルをアップロード
+- 必須項目を空のまま送信
+
+### 自動テスト
 
 ```bash
 # 単体テスト実行
@@ -215,25 +219,25 @@ dotnet test
 dotnet test --filter Category=Integration
 ```
 
-## 🚀 デプロイ
+## デプロイ
 
-### Azure App Service
+### API側デプロイ
 
-1. **API側デプロイ**
-   ```bash
-   cd PdfConverterApi
-   dotnet publish -c Release
-   # Azure App Serviceにデプロイ
-   ```
+```bash
+cd PdfConverterApi
+dotnet publish -c Release
+# Azure App Serviceにデプロイ
+```
 
-2. **Blazor側デプロイ (Azure Static Web Apps)**
-   ```bash
-   cd PdfConverterApp
-   dotnet publish -c Release
-   # Azure Static Web Appsにデプロイ
-   ```
+### Blazor側デプロイ (Azure Static Web Apps)
 
-### Docker (将来対応予定)
+```bash
+cd PdfConverterApp
+dotnet publish -c Release
+# Azure Static Web Appsにデプロイ
+```
+
+### Docker対応
 
 ```dockerfile
 # Dockerfile例
@@ -241,10 +245,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
+
 # ... 詳細設定
 ```
 
-## 🤝 コントリビューション
+## 貢献
 
 1. このリポジトリをフォーク
 2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
@@ -259,41 +264,36 @@ EXPOSE 443
 - **テスト**: 新機能には必ずテストコードを追加
 - **ドキュメント**: APIや設定変更時はドキュメントを更新
 
-## 📝 ライセンス
+## ライセンス
 
 このプロジェクトは [MIT License](LICENSE) の下で公開されています。
 
-## 👥 作者・貢献者
+## サポート・お問い合わせ
 
 - **メイン開発者**: [@yourusername](https://github.com/yourusername)
-
-## 📞 サポート・お問い合わせ
-
 - **Issues**: [GitHub Issues](https://github.com/yourusername/pdf-converter-app/issues)
-- **メール**: your.email@example.com
+- **メール**: [your.email@example.com](mailto:your.email@example.com)
 - **Twitter**: [@yourusername](https://twitter.com/yourusername)
 
-## 🗺️ ロードマップ
+## 今後の予定
 
-### v1.1 (予定)
-- [ ] 実際のPDF処理ライブラリ統合 (iTextSharp/PdfSharp)
-- [ ] ユーザー認証システム
-- [ ] 処理履歴機能
+- 実際のPDF処理ライブラリ統合 (iTextSharp/PdfSharp)
+- ユーザー認証システム
+- 処理履歴機能
+- バッチ処理機能
+- クラウドストレージ連携
+- API利用統計ダッシュボード
+- Docker対応
+- Kubernetes deployment
+- マイクロサービス化
 
-### v1.2 (予定)
-- [ ] バッチ処理機能
-- [ ] クラウドストレージ連携
-- [ ] API利用統計ダッシュボード
-
-### v2.0 (予定)
-- [ ] Docker対応
-- [ ] Kubernetes deployment
-- [ ] マイクロサービス化
-
-## 🙏 謝辞
+## 使用技術
 
 - [Bootstrap](https://getbootstrap.com/) - UI フレームワーク
 - [Bootstrap Icons](https://icons.getbootstrap.com/) - アイコンセット
+
+## 謝辞
+
 - [Microsoft .NET Team](https://github.com/dotnet) - フレームワーク開発
 
 ---
