@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using PdfConverterShare.Models;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace PdfConverterApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [EnableRateLimiting("minute")]
     public class DataConvertController : ControllerBase
     {
         private readonly ILogger<DataConvertController> _logger;
@@ -160,7 +162,7 @@ namespace PdfConverterApi.Controllers
         private async Task<ConvertResponse> ProcessPdfConversionAsync(ConvertRequest request, string requestId)
         {
             // ダミー処理: 実際の変換処理のシミュレーション
-            await Task.Delay(1500); // 1.5秒の処理時間
+            await Task.Delay(6000); // 1.5秒の処理時間
 
             _logger.LogInformation("[{RequestId}] ダミー変換処理実行: パスワード設定完了", requestId);
 
