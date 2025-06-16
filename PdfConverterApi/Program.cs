@@ -1,5 +1,7 @@
 using System.Text.Json;
-using PdfConverterApi.Models;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using PdfConverterApi.Models; // CorsSettings, RateLimitingSettingsの名前空間
 
 namespace PdfConverterApi
 {
@@ -9,78 +11,79 @@ namespace PdfConverterApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // サービス設定
+            // --- 設定クラスのインスタンス化とバインド ---
+            var corsSettings = new CorsSettings();
+            builder.Configuration.GetSection("CorsSettings").Bind(corsSettings);
+
+            var rateLimitSettings = new RateLimitingSettings();
+            builder.Configuration.GetSection("RateLimitingSettings").Bind(rateLimitSettings);
+
+
+            // --- サービス設定 ---
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                    // JSON設定の最適化
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                 });
 
-            // CORS設定をappsettings.jsonから読み込み（型安全な方法）
-            var corsSettings = new CorsSettings();
-            builder.Configuration.GetSection("CorsSettings").Bind(corsSettings);
-
-            //// バリデーション
-            //if (corsSettings.AllowedOrigins.Length == 0)
-            //{
-            //    // デフォルト値を設定
-            //    corsSettings.AllowedOrigins = new[] { "https://localhost:7072", "http://localhost:5122" };
-            //    builder.Services.Configure<ILogger>(logger =>
-            //    {
-            //        // 警告ログは起動後に出力するため、ここではコメントアウト
-            //        // logger.LogWarning("CorsSettings:AllowedOrigins が設定されていないため、デフォルト値を使用します。");
-            //    });
-            //}
-
-            builder.Services.AddCors(options =>
+            // 条件付きCORS設定
+            if (!string.IsNullOrEmpty(corsSettings.PolicyName) && corsSettings.AllowedOrigins?.Length > 0)
             {
-                options.AddPolicy(corsSettings.PolicyName, policy =>
+                builder.Services.AddCors(options =>
                 {
-                    policy.WithOrigins(corsSettings.AllowedOrigins);
-
-                    if (corsSettings.AllowAnyHeader)
+                    options.AddPolicy(corsSettings.PolicyName, policy =>
                     {
-                        policy.AllowAnyHeader();
-                    }
+                        policy.WithOrigins(corsSettings.AllowedOrigins)
+                              .WithExposedHeaders(corsSettings.ExposedHeaders);
 
-                    if (corsSettings.AllowAnyMethod)
-                    {
-                        policy.AllowAnyMethod();
-                    }
-
-                    if (corsSettings.ExposedHeaders.Length > 0)
-                    {
-                        policy.WithExposedHeaders(corsSettings.ExposedHeaders);
-                    }
+                        if (corsSettings.AllowAnyHeader) policy.AllowAnyHeader();
+                        if (corsSettings.AllowAnyMethod) policy.AllowAnyMethod();
+                    });
                 });
-            });
+            }
 
-            // ログ設定
-            builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
-            builder.Logging.AddDebug();
+            // 条件付きレート制限設定 (appsettings.jsonから読み込み)
+            if (rateLimitSettings.EnableRateLimiting)
+            {
+                builder.Services.AddRateLimiter(options =>
+                {
+                    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+                    var policies = rateLimitSettings.Policies;
+
+                    options.AddFixedWindowLimiter("minute", opt =>
+                    {
+                        opt.PermitLimit = policies.Minute.PermitLimit;
+                        opt.Window = TimeSpan.FromSeconds(policies.Minute.WindowInSeconds);
+                        opt.QueueLimit = 0;
+                    });
+                });
+            }
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-            }
+            // --- HTTPリクエストパイプラインの設定 ---
+            // 開発環境用のSwagger UI設定は削除済み
 
             app.UseHttpsRedirection();
-            app.UseCors(corsSettings.PolicyName);
+
+            // 条件付きCORSミドルウェアの有効化
+            if (!string.IsNullOrEmpty(corsSettings.PolicyName) && corsSettings.AllowedOrigins?.Length > 0)
+            {
+                app.UseCors(corsSettings.PolicyName);
+            }
+
+            // 条件付きレート制限ミドルウェアの有効化
+            if (rateLimitSettings.EnableRateLimiting)
+            {
+                app.UseRateLimiter();
+            }
+
             app.UseAuthorization();
             app.MapControllers();
 
-            // 起動ログ
             app.Logger.LogInformation("PDF変換API サーバー起動完了: {Environment}", app.Environment.EnvironmentName);
-
             app.Run();
         }
     }
