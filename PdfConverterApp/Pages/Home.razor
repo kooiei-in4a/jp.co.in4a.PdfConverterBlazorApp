@@ -210,6 +210,13 @@
 
     private async Task SendToApiAsync()
     {
+        await CheckApiHealthAsync();
+        if (apiHealthStatus == false)
+        {
+            errorMessage = "API接続に失敗しました。後ほど再試行してください。";
+            return;
+        }
+
         var validationContext = new ValidationContext(formModel);
         var validationResults = new List<ValidationResult>();
         if (!Validator.TryValidateObject(formModel, validationContext, validationResults, true))
