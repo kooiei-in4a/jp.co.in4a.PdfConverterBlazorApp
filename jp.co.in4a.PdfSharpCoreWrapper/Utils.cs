@@ -13,7 +13,6 @@ namespace jp.co.in4a.PdfSharpCoreWrapper
 {
     public class Utils
     {
-
         private static void PdfBinCheck(byte[] pdfBinary)
         {
             // 入力検証
@@ -26,7 +25,7 @@ namespace jp.co.in4a.PdfSharpCoreWrapper
 
         public static bool IsViewingPasswordProtected(byte[] pdfBinary)
         {
-            PdfBinCheck(pdfBinary); // 入力検証は重要
+            PdfBinCheck(pdfBinary); 
             try
             {
                 using (var stream = new MemoryStream(pdfBinary))
