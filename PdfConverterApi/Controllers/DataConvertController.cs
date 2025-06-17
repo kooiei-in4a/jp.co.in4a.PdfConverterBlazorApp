@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using jp.co.in4a.PdfSharpCoreWrapper.PasswordProtect;
+using jp.co.in4a.PdfSharpCoreWrapper.PasswordProtect.PdfSharpCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
-using PdfConverterShare.Models;
 using Microsoft.AspNetCore.RateLimiting;
+using PdfConverterShare.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace PdfConverterApi.Controllers
 {
@@ -18,6 +20,17 @@ namespace PdfConverterApi.Controllers
         public DataConvertController(ILogger<DataConvertController> logger)
         {
             _logger = logger;
+        }
+
+        /// <summary>
+        /// API動作確認
+        /// </summary>
+        [HttpGet]
+        public ActionResult<ApiInfoResponse> Get()
+        {
+            _logger.LogInformation("API動作確認リクエスト");
+
+            return Ok(new ApiInfoResponse());
         }
 
         /// <summary>
@@ -101,17 +114,6 @@ namespace PdfConverterApi.Controllers
         }
 
         /// <summary>
-        /// API動作確認
-        /// </summary>
-        [HttpGet]
-        public ActionResult<ApiInfoResponse> Get()
-        {
-            _logger.LogInformation("API動作確認リクエスト");
-
-            return Ok(new ApiInfoResponse());
-        }
-
-        /// <summary>
         /// リクエストデータのカスタム検証
         /// </summary>
         private (bool IsValid, string ErrorMessage) ValidateRequest(ConvertRequest request)
@@ -164,6 +166,9 @@ namespace PdfConverterApi.Controllers
             // ダミー処理: 実際の変換処理のシミュレーション
             await Task.Delay(6000); // 1.5秒の処理時間
 
+            PdfPasswordProtector pdfPasswordProtector = new PdfPasswordProtector();
+            var passPdf = pdfPasswordProtector.SetPassword(request.FileData, request.ViewPassword);
+
             _logger.LogInformation("[{RequestId}] ダミー変換処理実行: パスワード設定完了", requestId);
 
             // 処理後ファイル名生成
@@ -172,9 +177,12 @@ namespace PdfConverterApi.Controllers
             return new ConvertResponse
             {
                 FileName = processedFileName,
-                FileData = request.FileData // ダミー: 元データをそのまま返却
+                FileData = passPdf // ダミー: 元データをそのまま返却
             };
         }
+
+        
+
 
         /// <summary>
         /// 処理後ファイル名生成
