@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="PasswordRemover.cs" />
+    <Compile Remove="PasswordSetter.cs" />
+    <Compile Remove="PdfSecurityInfo.cs" />
+    <Compile Remove="Utils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="PdfSharpCore" Version="1.3.67" />
   </ItemGroup>
 
