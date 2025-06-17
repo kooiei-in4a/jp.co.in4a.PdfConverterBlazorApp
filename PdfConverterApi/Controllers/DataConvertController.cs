@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using PdfConverterShare.Models;
+using PdfSharpCore.Pdf.IO;
 using System.ComponentModel.DataAnnotations;
 
 namespace PdfConverterApi.Controllers
@@ -77,13 +78,36 @@ namespace PdfConverterApi.Controllers
                     });
                 }
 
-                // PDF変換処理実行
-                var response = await ProcessPdfConversionAsync(request, requestId);
-
-                _logger.LogInformation("[{RequestId}] PDF変換完了: OutputFile={OutputFileName}, OutputSize={OutputSize}bytes",
+                try
+                {
+                    // PDF変換処理実行
+                    var response = await ProcessPdfConversionAsync(request, requestId);
+                    _logger.LogInformation("[{RequestId}] PDF変換完了: OutputFile={OutputFileName}, OutputSize={OutputSize}bytes",
                     requestId, response.FileName, response.FileData.Length);
 
-                return Ok(response);
+                    return Ok(response);
+                }
+                catch (PdfReaderException ex) when (ex.Message.Contains("パスワード") || ex.Message.Contains("password"))
+                {
+                    // パスワード保護されたPDFの処理
+                    _logger.LogWarning("[{RequestId}] パスワード保護されたPDF: {Message}", requestId, ex.Message);
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "パスワードが設定されています。",
+                        Details = ex.Message
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "パスワード設定処理に失敗しました。",
+                        Details = ex.Message
+                    });
+
+                }
+
+
             }
             catch (ArgumentException ex)
             {
@@ -166,10 +190,13 @@ namespace PdfConverterApi.Controllers
             // ダミー処理: 実際の変換処理のシミュレーション
             await Task.Delay(6000); // 1.5秒の処理時間
 
+
+            _logger.LogInformation("[{RequestId}] : 処理開始", requestId);
+
             PdfPasswordProtector pdfPasswordProtector = new PdfPasswordProtector();
             var passPdf = pdfPasswordProtector.SetPassword(request.FileData, request.ViewPassword);
 
-            _logger.LogInformation("[{RequestId}] ダミー変換処理実行: パスワード設定完了", requestId);
+            _logger.LogInformation("[{RequestId}] : 処理終了", requestId);
 
             // 処理後ファイル名生成
             var processedFileName = GenerateProcessedFileName(request.FileName);
