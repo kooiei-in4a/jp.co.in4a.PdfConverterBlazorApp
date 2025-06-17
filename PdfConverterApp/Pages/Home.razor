@@ -63,7 +63,8 @@
                             </label>
                             <InputText id="viewPassword" class="form-control" type="password"
                                     @bind-Value="formModel.ViewPassword" @oninput="OnPasswordInput" 
-                                    disabled="@isProcessing" placeholder="参照用パスワード" />
+                                    disabled="@isProcessing" placeholder="参照用パスワード"
+                                    autocomplete="new-password" />
 
                         </div>
 
