@@ -8,13 +8,13 @@ namespace PdfConverterApp.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ApiSettings _apiSettings;
-        private readonly string _apiBaseUrl;
+        private readonly string _apiUrl;
 
         public PdfConverterService(HttpClient httpClient, ApiSettings apiSettings)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _apiSettings = apiSettings ?? throw new ArgumentNullException(nameof(apiSettings));
-            _apiBaseUrl = _apiSettings.BaseUrl;
+            _apiUrl = _apiSettings.BaseUrl;
 
             // タイムアウト設定
             _httpClient.Timeout = TimeSpan.FromSeconds(_apiSettings.TimeoutSeconds);
@@ -24,7 +24,7 @@ namespace PdfConverterApp.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(_apiBaseUrl, request);
+                var response = await _httpClient.PostAsJsonAsync(_apiUrl, request);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -50,11 +50,12 @@ namespace PdfConverterApp.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync(_apiBaseUrl);
+                var response = await _httpClient.GetAsync(_apiUrl);
                 return response.IsSuccessStatusCode;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"APIヘルスチェックでエラーが発生しました: {ex.Message}");
                 return false;
             }
         }

@@ -27,7 +27,18 @@ namespace PdfConverterApp
             builder.Services.AddSingleton(apiSettings);
 
             // HttpClient設定
-            builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            //builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+            // ▼▼▼ HttpClient設定をここから変更 ▼▼▼
+            builder.Services.AddScoped(sp =>
+            {
+                // DIコンテナからApiSettingsを取得
+                var settings = sp.GetRequiredService<ApiSettings>();
+
+                // ApiSettingsのBaseUrlをHttpClientのBaseAddressに設定
+                return new HttpClient { BaseAddress = new Uri(settings.BaseUrl!) };
+            });
+            // ▲▲▲ HttpClient設定をここまで変更 ▲▲▲
 
             // サービス登録
             builder.Services.AddScoped<IPdfConverterService, PdfConverterService>();

@@ -25,7 +25,7 @@ namespace PdfConverterFunction
         /// </summary>
         [Function("GetApiInfo")]
         public async Task<HttpResponseData> GetApiInfo(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "api/dataconvert")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dataconvert")] HttpRequestData req)
         {
             _logger.LogInformation("API動作確認リクエスト");
 
@@ -43,7 +43,7 @@ namespace PdfConverterFunction
         /// </summary>
         [Function("ConvertPdf")]
         public async Task<HttpResponseData> ConvertPdf(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "api/dataconvert")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "dataconvert")] HttpRequestData req)
         {
             var requestId = Guid.NewGuid().ToString("N")[..8];
 
